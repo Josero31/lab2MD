@@ -1,0 +1,90 @@
+---
+title: "lab2"
+output: html_document
+date: "2026-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab 2 - Aprendizaje no supervisado
+
+## Clustering
+
+### Preprocesamiento 
+s
+```{r, echo=FALSE}
+# Librerías necesarias
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(clustertend)
+library(NbClust)
+library(GGally)
+library(dendextend)
+
+# Cargar dataset
+movies <- read.csv("movies_2026.csv")
+
+# Revisar estructura
+str(movies)
+summary(movies)
+
+```
+
+#### Selección de variables
+
+Eliminamos variables que no aportan a la formación de grupos:
+
+id, originalTitle, title, homePage, actorsCharacter, releaseDate, director, productionCompany, actors
+
+
+Variables textuales no numéricas
+
+Trabajaremos con variables numéricas relevantes para comportamiento y desempeño:
+```{r, echo=FALSE}
+movies_clean <- movies %>%
+  select(popularity, budget, revenue, runtime,
+         genresAmount, productionCoAmount,
+         productionCountriesAmount, voteCount,
+         voteAvg, actorsPopularity,
+         actorsAmount, castWomenAmount,
+         castMenAmount, releaseYear) %>%
+  mutate(across(everything(), ~ as.numeric(as.character(.)))) %>%
+  drop_na()
+
+movies_scaled <- scale(movies_clean)
+
+```
+
+### Tendencia al Agrupamiento
+#### Estadistico de Hopkins
+```{r}
+set.seed(123)
+hopkins_stat <- hopkins(movies_scaled, n = nrow(movies_scaled)-1)
+hopkins_stat
+
+```
+
+#### VAT
+```{r}
+fviz_dist(dist(movies_scaled))
+
+```
+
+### Numero Optimo de Clusters
+#### Metodo del Codo
+```{r}
+fviz_nbclust(movies_scaled, kmeans, method = "wss") +
+  ggtitle("Método del Codo")
+
+```
+
+#### Metodo de silueta
+```{r}
+fviz_nbclust(movies_scaled, kmeans, method = "silhouette") +
+  ggtitle("Método de Silueta")
+
+```
+

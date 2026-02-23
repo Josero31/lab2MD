@@ -88,3 +88,69 @@ fviz_nbclust(movies_scaled, kmeans, method = "silhouette") +
 
 ```
 
+## 1.4 Aplicación de K-medias y Clustering Jerárquico
+
+### K-medias
+
+```{r}
+set.seed(123)
+
+k_opt <- 3  # Ajustar según los métodos del codo y silueta
+
+kmeans_model <- kmeans(movies_scaled, centers = k_opt, nstart = 25)
+
+# Agregar cluster al dataset
+movies_clean$cluster_kmeans <- as.factor(kmeans_model$cluster)
+
+# Visualización
+fviz_cluster(kmeans_model, data = movies_scaled,
+             ellipse.type = "convex",
+             ggtheme = theme_minimal(),
+             main = "Clusters con K-means")
+
+
+# Matriz de distancias
+dist_matrix <- dist(movies_scaled)
+
+# Método de Ward
+hc_model <- hclust(dist_matrix, method = "ward.D2")
+
+# Dendrograma
+plot(hc_model, labels = FALSE, main = "Dendrograma - Clustering Jerárquico")
+
+# Cortar el árbol en k clusters
+hc_clusters <- cutree(hc_model, k = k_opt)
+
+movies_clean$cluster_hc <- as.factor(hc_clusters)
+
+# Visualización
+fviz_cluster(list(data = movies_scaled, cluster = hc_clusters),
+             ellipse.type = "convex",
+             ggtheme = theme_minimal(),
+             main = "Clusters Jerárquicos")
+
+table(Kmeans = movies_clean$cluster_kmeans,
+      Jerarquico = movies_clean$cluster_hc)
+
+
+
+sil_kmeans <- silhouette(kmeans_model$cluster, dist_matrix)
+fviz_silhouette(sil_kmeans)
+mean(sil_kmeans[,3])
+
+sil_hc <- silhouette(hc_clusters, dist_matrix)
+fviz_silhouette(sil_hc)
+mean(sil_hc[,3])
+
+
+movies_clean %>%
+  group_by(cluster_kmeans) %>%
+  summarise(across(where(is.numeric),
+                   list(media = mean,
+                        mediana = median),
+                   na.rm = TRUE))
+
+
+table(movies_clean$cluster_kmeans)
+
+

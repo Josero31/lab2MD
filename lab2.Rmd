@@ -155,6 +155,114 @@ table(movies_clean$cluster_kmeans)
 
 ```
 
+
+# 2. Reglas de Asociación
+
+## 2.1 Generación de reglas con algoritmo Apriori
+
+```{r}
+library(arules)
+library(arulesViz)
+
+# Seleccionar variables numéricas
+movies_rules <- movies_clean %>%
+  select(popularity, budget, revenue, runtime,
+         voteCount, voteAvg, actorsPopularity,
+         actorsAmount, castWomenAmount,
+         castMenAmount, releaseYear)
+
+# Función segura de discretización en 3 niveles
+discretize_safe <- function(x){
+  breaks <- quantile(x, probs = seq(0, 1, length.out = 4), na.rm = TRUE)
+  breaks <- unique(breaks)  # evitar duplicados
+  cut(x,
+      breaks = breaks,
+      include.lowest = TRUE,
+      labels = c("Low","Medium","High")[1:(length(breaks)-1)])
+}
+
+# Aplicar discretización
+movies_rules_disc <- as.data.frame(
+  lapply(movies_rules, discretize_safe)
+)
+
+# Convertir a transacciones
+movies_trans <- as(movies_rules_disc, "transactions")
+
+summary(movies_trans)
+```
+
+---
+
+## Reglas con soporte = 0.20 y confianza = 0.60
+
+```{r}
+rules1 <- apriori(movies_trans,
+                  parameter = list(supp = 0.20,
+                                   conf = 0.60,
+                                   minlen = 2))
+
+summary(rules1)
+inspect(head(sort(rules1, by = "lift"), 10))
+```
+
+---
+
+## Reglas con soporte = 0.10 y confianza = 0.70
+
+```{r}
+rules2 <- apriori(movies_trans,
+                  parameter = list(supp = 0.10,
+                                   conf = 0.70,
+                                   minlen = 2))
+
+summary(rules2)
+inspect(head(sort(rules2, by = "lift"), 10))
+```
+
+---
+
+## Eliminación de ítems muy frecuentes (>80%)
+
+```{r}
+item_freq <- itemFrequency(movies_trans)
+
+freq_items <- names(item_freq[item_freq > 0.8])
+
+movies_trans_reduced <- movies_trans[, !(colnames(movies_trans) %in% freq_items)]
+
+rules3 <- apriori(movies_trans_reduced,
+                  parameter = list(supp = 0.10,
+                                   conf = 0.70,
+                                   minlen = 2))
+
+summary(rules3)
+inspect(head(sort(rules3, by = "lift"), 10))
+```
+
+---
+
+## Visualización
+
+```{r}
+plot(rules3, method = "grouped")
+```
+
+---
+
+## Discusión
+
+Con soporte 0.20 y confianza 0.60 se obtienen reglas generales del comportamiento del dataset.
+
+Al reducir el soporte a 0.10 y aumentar la confianza a 0.70 se obtienen reglas más específicas y fuertes.
+
+Eliminar ítems muy frecuentes mejora la calidad de las reglas y evita asociaciones triviales.
+
+Las reglas con mayor lift representan asociaciones no triviales entre variables como presupuesto, ingresos y popularidad.
+
+
+
+
 ## Analisis de Componentes Principales PCA
 
 ### ¿Se pueden incluir variables categoricas?

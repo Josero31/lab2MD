@@ -153,4 +153,87 @@ movies_clean %>%
 
 table(movies_clean$cluster_kmeans)
 
+```
+
+## Analisis de Componentes Principales PCA
+
+### ¿Se pueden incluir variables categoricas?
+
+Las variables categóricas como:
+
+-originalLanguage
+
+-genres
+
+-productionCountry
+
+-director
+
+-productionCompany
+
+No pueden incluirse directamente en PCA porque:
+
+-PCA trabaja con matriz de covarianza/correlación
+
+-Requiere variables numéricas continuas
+
+-Transformarlas con One-Hot Encoding generaría cientos de variables
+
+-Alta cardinalidad → distorsiona la varianza
+
+### ¿Es conveniente aplicar PCA?
+
+Trabajando solo con variables numericas:
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(psych)
+library(corrplot)
+
+movies_pca <- movies %>%
+  select(popularity, budget, revenue, runtime,
+         genresAmount, productionCoAmount,
+         productionCountriesAmount, voteCount,
+         voteAvg, actorsPopularity,
+         actorsAmount, castWomenAmount,
+         castMenAmount) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  drop_na()
+
+movies_scaled <- scale(movies_pca)
+
+cor_matrix <- cor(movies_scaled)
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.7)
+
+
+KMO(cor_matrix)
+
+cortest.bartlett(cor_matrix, n = nrow(movies_scaled))
+```
+
+La matriz de correlación evidencia dependencias lineales moderadas y fuertes entre varias variables, lo que justifica la aplicación de PCA para reducir dimensionalidad. El índice KMO global de 0.66 indica que la estructura de correlaciones es aceptable para aplicar análisis factorial o PCA. El test de esfericidad de Bartlett resultó altamente significativo (p < 0.001), lo que confirma que la matriz de correlación no es identidad y que existen correlaciones suficientes para aplicar PCA. Se seleccionaron los primeros 4 componentes principales, ya que presentan valores propios mayores a 1 y explican aproximadamente el 55% de la variabilidad total.
+
+### Aplicacion del PCA
+
+```{r, echo=FALSE}
+pca_model <- prcomp(movies_scaled, center = TRUE, scale. = TRUE)
+summary(pca_model)
+
+library(factoextra)
+
+fviz_eig(pca_model, addlabels = TRUE)
+
+pca_model$rotation
+
+fviz_pca_var(pca_model, col.var = "contrib")
+
+fviz_pca_biplot(pca_model,
+                repel = TRUE,
+                col.var = "blue",
+                col.ind = "gray")
+```
+
+El análisis de componentes principales permitió identificar cuatro dimensiones fundamentales en el desempeño de las películas: impacto comercial, estructura del elenco, complejidad productiva e inversión económica.
+
+Esta reducción facilita la construcción futura de modelos predictivos, disminuye problemas de colinealidad y permite segmentar películas en función de características estructurales más compactas.
 

@@ -345,3 +345,98 @@ El análisis de componentes principales permitió identificar cuatro dimensiones
 
 Esta reducción facilita la construcción futura de modelos predictivos, disminuye problemas de colinealidad y permite segmentar películas en función de características estructurales más compactas.
 
+## 4. Otros Algoritmos de Aprendizaje No Supervisado
+
+### 4.1 Selección del algoritmo
+
+Para este apartado se decidió utilizar **UMAP (Uniform Manifold Approximation and Projection)**.
+
+UMAP es una técnica de reducción de dimensionalidad no lineal que permite proyectar datos de alta dimensión en un espacio de menor dimensión preservando tanto la estructura local como parte de la estructura global.  
+
+Se eligió este algoritmo debido a que:
+
+- El dataset contiene múltiples variables numéricas relevantes (budget, revenue, popularity, voteAvg, voteCount, runtime, actorsPopularity, etc.).
+- El conjunto de datos es grande (~19,883 observaciones), y UMAP es más eficiente computacionalmente que t-SNE.
+- Permite detectar estructuras complejas o agrupamientos no lineales que PCA no logra capturar.
+- Facilita la visualización de posibles segmentos naturales de películas.
+
+---
+
+### 4.2 Preparación de los datos
+
+Se utilizaron únicamente variables numéricas relevantes para evitar ruido proveniente de identificadores o variables textuales.
+
+```{r}
+library(dplyr)
+library(umap)
+library(ggplot2)
+library(scale)
+
+# Selección de variables numéricas relevantes
+movies_num <- movies %>%
+  select(popularity, budget, revenue, runtime,
+         voteAvg, voteCount, actorsPopularity,
+         actorsAmount, castWomenAmount, castMenAmount,
+         productionCoAmount, productionCountriesAmount) %>%
+  na.omit()
+
+# Escalamiento de variables
+movies_scaled <- scale(movies_num)
+```
+
+El escalamiento es necesario debido a que variables como *revenue* y *budget* tienen magnitudes muy superiores a otras variables como *voteAvg*, lo que podría sesgar la proyección.
+
+---
+
+### 4.3 Aplicación de UMAP
+
+```{r}
+set.seed(123)
+
+umap_result <- umap(movies_scaled)
+
+umap_df <- as.data.frame(umap_result$layout)
+colnames(umap_df) <- c("UMAP1", "UMAP2")
+```
+
+---
+
+### 4.4 Visualización de resultados
+
+```{r}
+ggplot(umap_df, aes(x = UMAP1, y = UMAP2)) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Proyección UMAP del Dataset de Películas",
+       x = "UMAP 1",
+       y = "UMAP 2")
+```
+
+---
+
+### 4.5 Interpretación de resultados
+
+La proyección obtenida mediante UMAP permite observar:
+
+- La existencia de regiones densas que sugieren segmentos naturales de películas.
+- Separaciones claras entre grupos de películas con características financieras y de popularidad similares.
+- Posibles conglomerados asociados a:
+  - Películas de alto presupuesto y alto revenue.
+  - Películas independientes de bajo presupuesto.
+  - Películas con alto voteCount y alta popularidad del elenco.
+  - Producciones con múltiples compañías y coproducciones internacionales.
+
+A diferencia del PCA, UMAP captura estructuras no lineales, lo cual permite visualizar mejor relaciones complejas entre variables financieras, de popularidad y de producción.
+
+---
+
+### 4.6 Relevancia para CineVision Studios
+
+El uso de UMAP aporta valor estratégico porque:
+
+- Permite identificar segmentos de mercado no evidentes.
+- Facilita detectar nichos como películas altamente rentables con bajo presupuesto.
+- Permite visualizar patrones relacionados con popularidad del elenco y éxito financiero.
+- Complementa los resultados obtenidos en el clustering, validando visualmente la existencia de agrupamientos naturales.
+
+En conclusión, UMAP resulta ser una herramienta relevante para este conjunto de datos, ya que revela estructuras complejas que pueden ser explotadas por CineVision Studios para la toma de decisiones estratégicas en futuras producciones.

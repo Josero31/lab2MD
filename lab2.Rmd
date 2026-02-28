@@ -1,9 +1,11 @@
 ---
-title: "lab2"
-output: html_document
+title: "Lab 2 - Aprendizaje No Supervisado"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
 date: "2026-02-23"
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -370,18 +372,16 @@ Se utilizaron únicamente variables numéricas relevantes para evitar ruido prov
 library(dplyr)
 library(umap)
 library(ggplot2)
-library(scale)
+library(scales) 
 
-# Selección de variables numéricas relevantes
 movies_num <- movies %>%
   select(popularity, budget, revenue, runtime,
          voteAvg, voteCount, actorsPopularity,
          actorsAmount, castWomenAmount, castMenAmount,
          productionCoAmount, productionCountriesAmount) %>%
+  # Aseguramos que TODO sea numérico antes de omitir NA
+  mutate(across(everything(), ~as.numeric(as.character(.)))) %>%
   na.omit()
-
-# Escalamiento de variables
-movies_scaled <- scale(movies_num)
 ```
 
 El escalamiento es necesario debido a que variables como *revenue* y *budget* tienen magnitudes muy superiores a otras variables como *voteAvg*, lo que podría sesgar la proyección.
